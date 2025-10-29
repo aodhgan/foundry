@@ -94,7 +94,14 @@ use revm::{
     interpreter::{InstructionResult, return_ok, return_revert},
     primitives::eip7702::PER_EMPTY_ACCOUNT_COST,
 };
-use std::{sync::Arc, time::Duration};
+use serde::Serialize;
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 use tokio::{
     sync::mpsc::{UnboundedReceiver, unbounded_channel},
     try_join,
@@ -136,6 +143,8 @@ pub struct EthApi {
     net_listening: bool,
     /// The instance ID. Changes on every reset.
     instance_id: Arc<RwLock<B256>>,
+    /// Whether RPC payload logging is enabled.
+    rpc_payload_logging: Arc<AtomicBool>,
 }
 
 impl EthApi {
@@ -151,6 +160,7 @@ impl EthApi {
         logger: LoggingManager,
         filters: Filters,
         transactions_order: TransactionOrder,
+        rpc_payload_logging: bool,
     ) -> Self {
         Self {
             pool,
@@ -165,12 +175,17 @@ impl EthApi {
             net_listening: true,
             transaction_order: Arc::new(RwLock::new(transactions_order)),
             instance_id: Arc::new(RwLock::new(B256::random())),
+            rpc_payload_logging: Arc::new(AtomicBool::new(rpc_payload_logging)),
         }
     }
 
     /// Executes the [EthRequest] and returns an RPC [ResponseResult].
     pub async fn execute(&self, request: EthRequest) -> ResponseResult {
         trace!(target: "rpc::api", "executing eth request");
+        let should_log_rpc_payloads = self.should_log_rpc_payloads();
+        if should_log_rpc_payloads {
+            self.log_rpc_payload("RPC request", &request);
+        }
         let response = match request.clone() {
             EthRequest::EthProtocolVersion(()) => self.protocol_version().to_rpc_result(),
             EthRequest::Web3ClientVersion(()) => self.client_version().to_rpc_result(),
@@ -517,6 +532,10 @@ impl EthApi {
             }
         };
 
+        if should_log_rpc_payloads {
+            self.log_rpc_payload("RPC response", &response);
+        }
+
         if let ResponseResult::Error(err) = &response {
             node_info!("\nRPC request failed:");
             node_info!("    Request: {:?}", request);
@@ -524,6 +543,18 @@ impl EthApi {
         }
 
         response
+    }
+
+    fn should_log_rpc_payloads(&self) -> bool {
+        self.logger.is_enabled() && self.rpc_payload_logging.load(Ordering::Relaxed)
+    }
+
+    fn log_rpc_payload<T>(&self, label: &str, value: &T)
+    where
+        T: Serialize + std::fmt::Debug,
+    {
+        let payload = serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value));
+        node_info!("{label}: {payload}");
     }
 
     fn sign_request(
@@ -2233,6 +2264,7 @@ impl EthApi {
     /// Handler for RPC call: `anvil_setLoggingEnabled`
     pub async fn anvil_set_logging(&self, enable: bool) -> Result<()> {
         node_info!("anvil_setLoggingEnabled");
+        self.rpc_payload_logging.store(enable, Ordering::Relaxed);
         self.logger.set_enabled(enable);
         Ok(())
     }
