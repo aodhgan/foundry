@@ -11,6 +11,45 @@ use alloy_rpc_types::{
 use anvil_core::eth::{EthPubSub, EthRequest, EthRpcCall, subscription::SubscriptionId};
 use anvil_rpc::{error::RpcError, response::ResponseResult};
 use anvil_server::{PubSubContext, PubSubRpcHandler, RpcHandler};
+use std::fmt;
+
+#[derive(Clone)]
+struct JsonRpcRequest<T> {
+    parsed: T,
+    raw: serde_json::Value,
+}
+
+impl<T> JsonRpcRequest<T> {
+    fn into_parts(self) -> (T, serde_json::Value) {
+        (self.parsed, self.raw)
+    }
+}
+
+impl<T> fmt::Debug for JsonRpcRequest<T>
+where
+    T: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("JsonRpcRequest")
+            .field("parsed", &self.parsed)
+            .field("raw", &self.raw)
+            .finish()
+    }
+}
+
+impl<'de, T> serde::Deserialize<'de> for JsonRpcRequest<T>
+where
+    T: serde::de::DeserializeOwned,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = serde_json::Value::deserialize(deserializer)?;
+        let parsed = serde_json::from_value(raw.clone()).map_err(serde::de::Error::custom)?;
+        Ok(Self { parsed, raw })
+    }
+}
 
 /// A `RpcHandler` that expects `EthRequest` rpc calls via http
 #[derive(Clone)]
@@ -28,10 +67,11 @@ impl HttpEthRpcHandler {
 
 #[async_trait::async_trait]
 impl RpcHandler for HttpEthRpcHandler {
-    type Request = EthRequest;
+    type Request = JsonRpcRequest<EthRequest>;
 
     async fn on_request(&self, request: Self::Request) -> ResponseResult {
-        self.api.execute(request).await
+        let (request, raw) = request.into_parts();
+        self.api.execute_with_raw(request, Some(raw)).await
     }
 }
 

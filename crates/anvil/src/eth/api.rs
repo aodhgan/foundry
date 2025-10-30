@@ -94,7 +94,7 @@ use revm::{
     interpreter::{InstructionResult, return_ok, return_revert},
     primitives::eip7702::PER_EMPTY_ACCOUNT_COST,
 };
-use serde::Serialize;
+use serde_json::Value;
 use std::{
     sync::{
         Arc,
@@ -181,10 +181,18 @@ impl EthApi {
 
     /// Executes the [EthRequest] and returns an RPC [ResponseResult].
     pub async fn execute(&self, request: EthRequest) -> ResponseResult {
+        self.execute_with_raw(request, None).await
+    }
+
+    pub async fn execute_with_raw(
+        &self,
+        request: EthRequest,
+        raw_request: Option<Value>,
+    ) -> ResponseResult {
         trace!(target: "rpc::api", "executing eth request");
         let should_log_rpc_payloads = self.should_log_rpc_payloads();
         if should_log_rpc_payloads {
-            self.log_rpc_payload("RPC request", &request);
+            self.log_rpc_payload("RPC request", raw_request.as_ref(), &request);
         }
         let response = match request.clone() {
             EthRequest::EthProtocolVersion(()) => self.protocol_version().to_rpc_result(),
@@ -533,12 +541,20 @@ impl EthApi {
         };
 
         if should_log_rpc_payloads {
-            self.log_rpc_payload("RPC response", &response);
+            let response_json = serde_json::to_value(&response).ok();
+            self.log_rpc_payload("RPC response", response_json.as_ref(), &response);
         }
 
         if let ResponseResult::Error(err) = &response {
             node_info!("\nRPC request failed:");
-            node_info!("    Request: {:?}", request);
+            if let Some(raw) = &raw_request {
+                match serde_json::to_string(raw) {
+                    Ok(serialized) => node_info!("    Request: {serialized}"),
+                    Err(_) => node_info!("    Request: {:?}", request),
+                }
+            } else {
+                node_info!("    Request: {:?}", request);
+            }
             node_info!("    Error: {}\n", err);
         }
 
@@ -549,11 +565,16 @@ impl EthApi {
         self.logger.is_enabled() && self.rpc_payload_logging.load(Ordering::Relaxed)
     }
 
-    fn log_rpc_payload<T>(&self, label: &str, value: &T)
+    fn log_rpc_payload<T>(&self, label: &str, json_value: Option<&Value>, debug_value: &T)
     where
-        T: Serialize + std::fmt::Debug,
+        T: std::fmt::Debug,
     {
-        let payload = serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", value));
+        let payload = match json_value {
+            Some(value) => {
+                serde_json::to_string(value).unwrap_or_else(|_| format!("{:?}", debug_value))
+            }
+            None => format!("{:?}", debug_value),
+        };
         node_info!("{label}: {payload}");
     }
 
