@@ -15,6 +15,7 @@ use anvil_rpc::{
     response::{ResponseResult, RpcResponse},
 };
 use anvil_server::{PubSubContext, PubSubRpcHandler, RpcHandler};
+use chrono::Utc;
 use serde_json::json;
 use std::{fmt, net::SocketAddr};
 use tracing::{error, trace};
@@ -105,8 +106,12 @@ impl RpcHandler for HttpEthRpcHandler {
             "id": id.clone(),
         });
 
-        let metadata =
-            RpcCallLogContext { id: Some(id.clone()), method: Some(method.clone()), peer_addr };
+        let metadata = RpcCallLogContext {
+            id: Some(id.clone()),
+            method: Some(method.clone()),
+            peer_addr,
+            timestamp: Some(Utc::now()),
+        };
 
         let call_value = json!({
             "method": method.clone(),
