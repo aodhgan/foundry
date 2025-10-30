@@ -609,7 +609,7 @@ impl EthApi {
         self.logger.is_enabled() && self.rpc_payload_logging.load(Ordering::Relaxed)
     }
 
-    fn log_rpc_method(&self, method: &str) {
+    pub(crate) fn log_rpc_method(&self, method: &str) {
         if !self.should_log_rpc_payloads() {
             node_info!("{method}");
         }
