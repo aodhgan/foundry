@@ -26,14 +26,14 @@ pub mod serde_helpers;
 use self::serde_helpers::*;
 
 /// Wrapper type that ensures the type is named `params`
-#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct Params<T: Default> {
     #[serde(default)]
     pub params: T,
 }
 
 /// Represents ethereum JSON-RPC API
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "method", content = "params")]
 #[allow(clippy::large_enum_variant)]
 pub enum EthRequest {
