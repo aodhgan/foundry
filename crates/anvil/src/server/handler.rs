@@ -14,7 +14,7 @@ use anvil_server::{PubSubContext, PubSubRpcHandler, RpcHandler};
 use std::fmt;
 
 #[derive(Clone)]
-struct JsonRpcRequest<T> {
+pub struct JsonRpcRequest<T> {
     parsed: T,
     raw: serde_json::Value,
 }
