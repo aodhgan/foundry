@@ -79,7 +79,7 @@ use anvil_core::{
     },
     types::{ReorgOptions, TransactionData},
 };
-use anvil_rpc::{error::RpcError, response::ResponseResult};
+use anvil_rpc::{error::RpcError, request::Id as RpcId, response::ResponseResult};
 use foundry_common::provider::ProviderBuilder;
 use foundry_evm::decode::RevertDecoder;
 use futures::{
@@ -96,6 +96,8 @@ use revm::{
 };
 use serde_json::Value;
 use std::{
+    borrow::Cow,
+    net::SocketAddr,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -109,6 +111,40 @@ use tokio::{
 
 /// The client version: `anvil/v{major}.{minor}.{patch}`
 pub const CLIENT_VERSION: &str = concat!("anvil/v", env!("CARGO_PKG_VERSION"));
+
+#[derive(Clone, Debug, Default)]
+pub struct RpcCallLogContext {
+    pub id: Option<RpcId>,
+    pub method: Option<String>,
+    pub peer_addr: Option<SocketAddr>,
+}
+
+impl RpcCallLogContext {
+    fn label_suffix(&self) -> Option<String> {
+        let mut parts = Vec::new();
+
+        if let Some(id) = self.id.as_ref() {
+            parts.push(format!("id={id}"));
+        }
+
+        if let Some(method) = self.method.as_ref() {
+            parts.push(format!("method={method}"));
+        }
+
+        if let Some(peer_addr) = self.peer_addr {
+            parts.push(format!("peer={peer_addr}"));
+        }
+
+        (!parts.is_empty()).then(|| parts.join(", "))
+    }
+
+    fn format_label<'a>(&self, base: &'a str) -> Cow<'a, str> {
+        match self.label_suffix() {
+            Some(suffix) => Cow::Owned(format!("{base} [{suffix}]")),
+            None => Cow::Borrowed(base),
+        }
+    }
+}
 
 /// The entry point for executing eth api RPC call - The Eth RPC interface.
 ///
@@ -181,18 +217,19 @@ impl EthApi {
 
     /// Executes the [EthRequest] and returns an RPC [ResponseResult].
     pub async fn execute(&self, request: EthRequest) -> ResponseResult {
-        self.execute_with_raw(request, None).await
+        self.execute_with_raw(request, None, RpcCallLogContext::default()).await
     }
 
     pub async fn execute_with_raw(
         &self,
         request: EthRequest,
         raw_request: Option<Value>,
+        context: RpcCallLogContext,
     ) -> ResponseResult {
         trace!(target: "rpc::api", "executing eth request");
         let should_log_rpc_payloads = self.should_log_rpc_payloads();
         if should_log_rpc_payloads {
-            self.log_rpc_payload("RPC request", raw_request.as_ref(), &request);
+            self.log_rpc_payload("RPC request", raw_request.as_ref(), &request, &context);
         }
         let response = match request.clone() {
             EthRequest::EthProtocolVersion(()) => self.protocol_version().to_rpc_result(),
@@ -542,11 +579,12 @@ impl EthApi {
 
         if should_log_rpc_payloads {
             let response_json = serde_json::to_value(&response).ok();
-            self.log_rpc_payload("RPC response", response_json.as_ref(), &response);
+            self.log_rpc_payload("RPC response", response_json.as_ref(), &response, &context);
         }
 
         if let ResponseResult::Error(err) = &response {
-            node_info!("\nRPC request failed:");
+            let label = context.format_label("\nRPC request failed");
+            node_info!("{label}:");
             if let Some(raw) = &raw_request {
                 match serde_json::to_string(raw) {
                     Ok(serialized) => node_info!("    Request: {serialized}"),
@@ -565,8 +603,13 @@ impl EthApi {
         self.logger.is_enabled() && self.rpc_payload_logging.load(Ordering::Relaxed)
     }
 
-    fn log_rpc_payload<T>(&self, label: &str, json_value: Option<&Value>, debug_value: &T)
-    where
+    fn log_rpc_payload<T>(
+        &self,
+        label: &str,
+        json_value: Option<&Value>,
+        debug_value: &T,
+        context: &RpcCallLogContext,
+    ) where
         T: std::fmt::Debug,
     {
         let payload = match json_value {
@@ -575,6 +618,7 @@ impl EthApi {
             }
             None => format!("{:?}", debug_value),
         };
+        let label = context.format_label(label);
         node_info!("{label}: {payload}");
     }
 
