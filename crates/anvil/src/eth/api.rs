@@ -609,10 +609,8 @@ impl EthApi {
         self.logger.is_enabled() && self.rpc_payload_logging.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn log_rpc_method(&self, method: &str) {
-        if !self.should_log_rpc_payloads() {
-            node_info!("{method}");
-        }
+    fn should_log_method_banners(&self) -> bool {
+        !self.should_log_rpc_payloads()
     }
 
     fn log_rpc_payload<T>(
@@ -688,7 +686,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `web3_clientVersion`
     pub fn client_version(&self) -> Result<String> {
-        self.log_rpc_method("web3_clientVersion");
+        if self.should_log_method_banners() {
+            node_info!("web3_clientVersion");
+        }
         Ok(CLIENT_VERSION.to_string())
     }
 
@@ -696,7 +696,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `web3_sha3`
     pub fn sha3(&self, bytes: Bytes) -> Result<String> {
-        self.log_rpc_method("web3_sha3");
+        if self.should_log_method_banners() {
+            node_info!("web3_sha3");
+        }
         let hash = alloy_primitives::keccak256(bytes.as_ref());
         Ok(alloy_primitives::hex::encode_prefixed(&hash[..]))
     }
@@ -705,7 +707,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_protocolVersion`
     pub fn protocol_version(&self) -> Result<u64> {
-        self.log_rpc_method("eth_protocolVersion");
+        if self.should_log_method_banners() {
+            node_info!("eth_protocolVersion");
+        }
         Ok(1)
     }
 
@@ -713,7 +717,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_hashrate`
     pub fn hashrate(&self) -> Result<U256> {
-        self.log_rpc_method("eth_hashrate");
+        if self.should_log_method_banners() {
+            node_info!("eth_hashrate");
+        }
         Ok(U256::ZERO)
     }
 
@@ -721,7 +727,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_coinbase`
     pub fn author(&self) -> Result<Address> {
-        self.log_rpc_method("eth_coinbase");
+        if self.should_log_method_banners() {
+            node_info!("eth_coinbase");
+        }
         Ok(self.backend.coinbase())
     }
 
@@ -729,7 +737,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_mining`
     pub fn is_mining(&self) -> Result<bool> {
-        self.log_rpc_method("eth_mining");
+        if self.should_log_method_banners() {
+            node_info!("eth_mining");
+        }
         Ok(self.is_mining)
     }
 
@@ -739,7 +749,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_chainId`
     pub fn eth_chain_id(&self) -> Result<Option<U64>> {
-        self.log_rpc_method("eth_chainId");
+        if self.should_log_method_banners() {
+            node_info!("eth_chainId");
+        }
         Ok(Some(self.backend.chain_id().to::<U64>()))
     }
 
@@ -747,7 +759,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_networkId`
     pub fn network_id(&self) -> Result<Option<String>> {
-        self.log_rpc_method("eth_networkId");
+        if self.should_log_method_banners() {
+            node_info!("eth_networkId");
+        }
         let chain_id = self.backend.chain_id().to::<u64>();
         Ok(Some(format!("{chain_id}")))
     }
@@ -756,13 +770,17 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `net_listening`
     pub fn net_listening(&self) -> Result<bool> {
-        self.log_rpc_method("net_listening");
+        if self.should_log_method_banners() {
+            node_info!("net_listening");
+        }
         Ok(self.net_listening)
     }
 
     /// Returns the current gas price
     fn eth_gas_price(&self) -> Result<U256> {
-        self.log_rpc_method("eth_gasPrice");
+        if self.should_log_method_banners() {
+            node_info!("eth_gasPrice");
+        }
         Ok(U256::from(self.gas_price()))
     }
 
@@ -808,7 +826,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_accounts`
     pub fn accounts(&self) -> Result<Vec<Address>> {
-        self.log_rpc_method("eth_accounts");
+        if self.should_log_method_banners() {
+            node_info!("eth_accounts");
+        }
         let mut unique = HashSet::new();
         let mut accounts: Vec<Address> = Vec::new();
         for signer in self.signers.iter() {
@@ -828,7 +848,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_blockNumber`
     pub fn block_number(&self) -> Result<U256> {
-        self.log_rpc_method("eth_blockNumber");
+        if self.should_log_method_banners() {
+            node_info!("eth_blockNumber");
+        }
         Ok(U256::from(self.backend.best_number()))
     }
 
@@ -836,7 +858,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getBalance`
     pub async fn balance(&self, address: Address, block_number: Option<BlockId>) -> Result<U256> {
-        self.log_rpc_method("eth_getBalance");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBalance");
+        }
         let block_request = self.block_request(block_number).await?;
 
         // check if the number predates the fork, if in fork mode
@@ -858,7 +882,9 @@ impl EthApi {
         address: Address,
         block_number: Option<BlockId>,
     ) -> Result<Account> {
-        self.log_rpc_method("eth_getAccount");
+        if self.should_log_method_banners() {
+            node_info!("eth_getAccount");
+        }
         let block_request = self.block_request(block_number).await?;
 
         // check if the number predates the fork, if in fork mode
@@ -880,7 +906,9 @@ impl EthApi {
         address: Address,
         block_number: Option<BlockId>,
     ) -> Result<alloy_rpc_types::eth::AccountInfo> {
-        self.log_rpc_method("eth_getAccountInfo");
+        if self.should_log_method_banners() {
+            node_info!("eth_getAccountInfo");
+        }
 
         if let Some(fork) = self.get_fork() {
             let block_request = self.block_request(block_number).await?;
@@ -928,7 +956,9 @@ impl EthApi {
         index: U256,
         block_number: Option<BlockId>,
     ) -> Result<B256> {
-        self.log_rpc_method("eth_getStorageAt");
+        if self.should_log_method_banners() {
+            node_info!("eth_getStorageAt");
+        }
         let block_request = self.block_request(block_number).await?;
 
         // check if the number predates the fork, if in fork mode
@@ -948,7 +978,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getBlockByHash`
     pub async fn block_by_hash(&self, hash: B256) -> Result<Option<AnyRpcBlock>> {
-        self.log_rpc_method("eth_getBlockByHash");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBlockByHash");
+        }
         self.backend.block_by_hash(hash).await
     }
 
@@ -956,7 +988,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getBlockByHash`
     pub async fn block_by_hash_full(&self, hash: B256) -> Result<Option<AnyRpcBlock>> {
-        self.log_rpc_method("eth_getBlockByHash");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBlockByHash");
+        }
         self.backend.block_by_hash_full(hash).await
     }
 
@@ -964,7 +998,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getBlockByNumber`
     pub async fn block_by_number(&self, number: BlockNumber) -> Result<Option<AnyRpcBlock>> {
-        self.log_rpc_method("eth_getBlockByNumber");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBlockByNumber");
+        }
         if number == BlockNumber::Pending {
             return Ok(Some(self.pending_block().await));
         }
@@ -976,7 +1012,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getBlockByNumber`
     pub async fn block_by_number_full(&self, number: BlockNumber) -> Result<Option<AnyRpcBlock>> {
-        self.log_rpc_method("eth_getBlockByNumber");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBlockByNumber");
+        }
         if number == BlockNumber::Pending {
             return Ok(self.pending_block_full().await);
         }
@@ -994,7 +1032,9 @@ impl EthApi {
         address: Address,
         block_number: Option<BlockId>,
     ) -> Result<U256> {
-        self.log_rpc_method("eth_getTransactionCount");
+        if self.should_log_method_banners() {
+            node_info!("eth_getTransactionCount");
+        }
         self.get_transaction_count(address, block_number).await.map(U256::from)
     }
 
@@ -1002,7 +1042,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getBlockTransactionCountByHash`
     pub async fn block_transaction_count_by_hash(&self, hash: B256) -> Result<Option<U256>> {
-        self.log_rpc_method("eth_getBlockTransactionCountByHash");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBlockTransactionCountByHash");
+        }
         let block = self.backend.block_by_hash(hash).await?;
         let txs = block.map(|b| match b.transactions() {
             BlockTransactions::Full(txs) => U256::from(txs.len()),
@@ -1019,7 +1061,9 @@ impl EthApi {
         &self,
         block_number: BlockNumber,
     ) -> Result<Option<U256>> {
-        self.log_rpc_method("eth_getBlockTransactionCountByNumber");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBlockTransactionCountByNumber");
+        }
         let block_request = self.block_request(Some(block_number.into())).await?;
         if let BlockRequest::Pending(txs) = block_request {
             let block = self.backend.pending_block(txs).await;
@@ -1038,7 +1082,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getUncleCountByBlockHash`
     pub async fn block_uncles_count_by_hash(&self, hash: B256) -> Result<U256> {
-        self.log_rpc_method("eth_getUncleCountByBlockHash");
+        if self.should_log_method_banners() {
+            node_info!("eth_getUncleCountByBlockHash");
+        }
         let block =
             self.backend.block_by_hash(hash).await?.ok_or(BlockchainError::BlockNotFound)?;
         Ok(U256::from(block.uncles.len()))
@@ -1048,7 +1094,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getUncleCountByBlockNumber`
     pub async fn block_uncles_count_by_number(&self, block_number: BlockNumber) -> Result<U256> {
-        self.log_rpc_method("eth_getUncleCountByBlockNumber");
+        if self.should_log_method_banners() {
+            node_info!("eth_getUncleCountByBlockNumber");
+        }
         let block = self
             .backend
             .block_by_number(block_number)
@@ -1061,7 +1109,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getCode`
     pub async fn get_code(&self, address: Address, block_number: Option<BlockId>) -> Result<Bytes> {
-        self.log_rpc_method("eth_getCode");
+        if self.should_log_method_banners() {
+            node_info!("eth_getCode");
+        }
         let block_request = self.block_request(block_number).await?;
         // check if the number predates the fork, if in fork mode
         if let BlockRequest::Number(number) = block_request
@@ -1083,7 +1133,9 @@ impl EthApi {
         keys: Vec<B256>,
         block_number: Option<BlockId>,
     ) -> Result<EIP1186AccountProofResponse> {
-        self.log_rpc_method("eth_getProof");
+        if self.should_log_method_banners() {
+            node_info!("eth_getProof");
+        }
         let block_request = self.block_request(block_number).await?;
 
         // If we're in forking mode, or still on the forked block (no blocks mined yet) then we can
@@ -1107,7 +1159,9 @@ impl EthApi {
         _address: Address,
         _data: serde_json::Value,
     ) -> Result<String> {
-        self.log_rpc_method("eth_signTypedData");
+        if self.should_log_method_banners() {
+            node_info!("eth_signTypedData");
+        }
         Err(BlockchainError::RpcUnimplemented)
     }
 
@@ -1119,7 +1173,9 @@ impl EthApi {
         _address: Address,
         _data: serde_json::Value,
     ) -> Result<String> {
-        self.log_rpc_method("eth_signTypedData_v3");
+        if self.should_log_method_banners() {
+            node_info!("eth_signTypedData_v3");
+        }
         Err(BlockchainError::RpcUnimplemented)
     }
 
@@ -1127,7 +1183,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_signTypedData_v4`
     pub async fn sign_typed_data_v4(&self, address: Address, data: &TypedData) -> Result<String> {
-        self.log_rpc_method("eth_signTypedData_v4");
+        if self.should_log_method_banners() {
+            node_info!("eth_signTypedData_v4");
+        }
         let signer = self.get_signer(address).ok_or(BlockchainError::NoSignerAvailable)?;
         let signature = signer.sign_typed_data(address, data).await?;
         let signature = alloy_primitives::hex::encode(signature.as_bytes());
@@ -1138,7 +1196,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_sign`
     pub async fn sign(&self, address: Address, content: impl AsRef<[u8]>) -> Result<String> {
-        self.log_rpc_method("eth_sign");
+        if self.should_log_method_banners() {
+            node_info!("eth_sign");
+        }
         let signer = self.get_signer(address).ok_or(BlockchainError::NoSignerAvailable)?;
         let signature =
             alloy_primitives::hex::encode(signer.sign(address, content.as_ref()).await?.as_bytes());
@@ -1152,7 +1212,9 @@ impl EthApi {
         &self,
         mut request: WithOtherFields<TransactionRequest>,
     ) -> Result<String> {
-        self.log_rpc_method("eth_signTransaction");
+        if self.should_log_method_banners() {
+            node_info!("eth_signTransaction");
+        }
 
         let from = request.from.map(Ok).unwrap_or_else(|| {
             self.accounts()?.first().copied().ok_or(BlockchainError::NoSignerAvailable)
@@ -1181,7 +1243,9 @@ impl EthApi {
         &self,
         mut request: WithOtherFields<TransactionRequest>,
     ) -> Result<TxHash> {
-        self.log_rpc_method("eth_sendTransaction");
+        if self.should_log_method_banners() {
+            node_info!("eth_sendTransaction");
+        }
 
         let from = request.from.map(Ok).unwrap_or_else(|| {
             self.accounts()?.first().copied().ok_or(BlockchainError::NoSignerAvailable)
@@ -1259,7 +1323,9 @@ impl EthApi {
         &self,
         request: WithOtherFields<TransactionRequest>,
     ) -> Result<ReceiptResponse> {
-        self.log_rpc_method("eth_sendTransactionSync");
+        if self.should_log_method_banners() {
+            node_info!("eth_sendTransactionSync");
+        }
         let hash = self.send_transaction(request).await?;
 
         let receipt = self.check_transaction_inclusion(hash).await?;
@@ -1271,7 +1337,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_sendRawTransaction`
     pub async fn send_raw_transaction(&self, tx: Bytes) -> Result<TxHash> {
-        self.log_rpc_method("eth_sendRawTransaction");
+        if self.should_log_method_banners() {
+            node_info!("eth_sendRawTransaction");
+        }
         let mut data = tx.as_ref();
         if data.is_empty() {
             return Err(BlockchainError::EmptyRawTransactionData);
@@ -1309,7 +1377,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_sendRawTransactionSync`
     pub async fn send_raw_transaction_sync(&self, tx: Bytes) -> Result<ReceiptResponse> {
-        self.log_rpc_method("eth_sendRawTransactionSync");
+        if self.should_log_method_banners() {
+            node_info!("eth_sendRawTransactionSync");
+        }
 
         let hash = self.send_raw_transaction(tx).await?;
         let receipt = self.check_transaction_inclusion(hash).await?;
@@ -1326,7 +1396,9 @@ impl EthApi {
         block_number: Option<BlockId>,
         overrides: EvmOverrides,
     ) -> Result<Bytes> {
-        self.log_rpc_method("eth_call");
+        if self.should_log_method_banners() {
+            node_info!("eth_call");
+        }
         let block_request = self.block_request(block_number).await?;
         // check if the number predates the fork, if in fork mode
         if let BlockRequest::Number(number) = block_request
@@ -1365,7 +1437,9 @@ impl EthApi {
         request: SimulatePayload,
         block_number: Option<BlockId>,
     ) -> Result<Vec<SimulatedBlock<AnyRpcBlock>>> {
-        self.log_rpc_method("eth_simulateV1");
+        if self.should_log_method_banners() {
+            node_info!("eth_simulateV1");
+        }
         let block_request = self.block_request(block_number).await?;
         // check if the number predates the fork, if in fork mode
         if let BlockRequest::Number(number) = block_request
@@ -1404,7 +1478,9 @@ impl EthApi {
         mut request: WithOtherFields<TransactionRequest>,
         block_number: Option<BlockId>,
     ) -> Result<AccessListResult> {
-        self.log_rpc_method("eth_createAccessList");
+        if self.should_log_method_banners() {
+            node_info!("eth_createAccessList");
+        }
         let block_request = self.block_request(block_number).await?;
         // check if the number predates the fork, if in fork mode
         if let BlockRequest::Number(number) = block_request
@@ -1454,7 +1530,9 @@ impl EthApi {
         block_number: Option<BlockId>,
         overrides: EvmOverrides,
     ) -> Result<U256> {
-        self.log_rpc_method("eth_estimateGas");
+        if self.should_log_method_banners() {
+            node_info!("eth_estimateGas");
+        }
         self.do_estimate_gas(
             request,
             block_number.or_else(|| Some(BlockNumber::Pending.into())),
@@ -1469,13 +1547,17 @@ impl EthApi {
         &self,
         hash: B256,
     ) -> Result<Option<alloy_consensus::Blob>> {
-        self.log_rpc_method("anvil_getBlobByHash");
+        if self.should_log_method_banners() {
+            node_info!("anvil_getBlobByHash");
+        }
         Ok(self.backend.get_blob_by_versioned_hash(hash)?)
     }
 
     /// Handler for RPC call: `anvil_getBlobsByTransactionHash`
     pub fn anvil_get_blob_by_tx_hash(&self, hash: B256) -> Result<Option<Vec<Blob>>> {
-        self.log_rpc_method("anvil_getBlobsByTransactionHash");
+        if self.should_log_method_banners() {
+            node_info!("anvil_getBlobsByTransactionHash");
+        }
         Ok(self.backend.get_blob_by_tx_hash(hash)?)
     }
 
@@ -1485,7 +1567,9 @@ impl EthApi {
         block_id: impl Into<BlockId>,
         versioned_hashes: Vec<B256>,
     ) -> Result<Option<Vec<Blob>>> {
-        self.log_rpc_method("anvil_getBlobsByBlockId");
+        if self.should_log_method_banners() {
+            node_info!("anvil_getBlobsByBlockId");
+        }
         Ok(self.backend.get_blobs_by_block_id(block_id, versioned_hashes)?)
     }
 
@@ -1494,7 +1578,9 @@ impl EthApi {
         &self,
         block_id: BlockId,
     ) -> Result<Option<BlobTransactionSidecar>> {
-        self.log_rpc_method("anvil_getBlobSidecarsByBlockId");
+        if self.should_log_method_banners() {
+            node_info!("anvil_getBlobSidecarsByBlockId");
+        }
         Ok(self.backend.get_blob_sidecars_by_block_id(block_id)?)
     }
 
@@ -1505,7 +1591,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getTransactionByHash`
     pub async fn transaction_by_hash(&self, hash: B256) -> Result<Option<AnyRpcTransaction>> {
-        self.log_rpc_method("eth_getTransactionByHash");
+        if self.should_log_method_banners() {
+            node_info!("eth_getTransactionByHash");
+        }
         let mut tx = self.pool.get_transaction(hash).map(|pending| {
             let from = *pending.sender();
             let tx = transaction_build(
@@ -1538,7 +1626,9 @@ impl EthApi {
         hash: B256,
         index: Index,
     ) -> Result<Option<AnyRpcTransaction>> {
-        self.log_rpc_method("eth_getTransactionByBlockHashAndIndex");
+        if self.should_log_method_banners() {
+            node_info!("eth_getTransactionByBlockHashAndIndex");
+        }
         self.backend.transaction_by_block_hash_and_index(hash, index).await
     }
 
@@ -1550,7 +1640,9 @@ impl EthApi {
         block: BlockNumber,
         idx: Index,
     ) -> Result<Option<AnyRpcTransaction>> {
-        self.log_rpc_method("eth_getTransactionByBlockNumberAndIndex");
+        if self.should_log_method_banners() {
+            node_info!("eth_getTransactionByBlockNumberAndIndex");
+        }
         self.backend.transaction_by_block_number_and_index(block, idx).await
     }
 
@@ -1558,7 +1650,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getTransactionReceipt`
     pub async fn transaction_receipt(&self, hash: B256) -> Result<Option<ReceiptResponse>> {
-        self.log_rpc_method("eth_getTransactionReceipt");
+        if self.should_log_method_banners() {
+            node_info!("eth_getTransactionReceipt");
+        }
         self.backend.transaction_receipt(hash).await
     }
 
@@ -1566,7 +1660,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getBlockReceipts`
     pub async fn block_receipts(&self, number: BlockId) -> Result<Option<Vec<ReceiptResponse>>> {
-        self.log_rpc_method("eth_getBlockReceipts");
+        if self.should_log_method_banners() {
+            node_info!("eth_getBlockReceipts");
+        }
         self.backend.block_receipts(number).await
     }
 
@@ -1578,7 +1674,9 @@ impl EthApi {
         block_hash: B256,
         idx: Index,
     ) -> Result<Option<AnyRpcBlock>> {
-        self.log_rpc_method("eth_getUncleByBlockHashAndIndex");
+        if self.should_log_method_banners() {
+            node_info!("eth_getUncleByBlockHashAndIndex");
+        }
         let number =
             self.backend.ensure_block_number(Some(BlockId::Hash(block_hash.into()))).await?;
         if let Some(fork) = self.get_fork()
@@ -1598,7 +1696,9 @@ impl EthApi {
         block_number: BlockNumber,
         idx: Index,
     ) -> Result<Option<AnyRpcBlock>> {
-        self.log_rpc_method("eth_getUncleByBlockNumberAndIndex");
+        if self.should_log_method_banners() {
+            node_info!("eth_getUncleByBlockNumberAndIndex");
+        }
         let number = self.backend.ensure_block_number(Some(BlockId::Number(block_number))).await?;
         if let Some(fork) = self.get_fork()
             && fork.predates_fork_inclusive(number)
@@ -1613,7 +1713,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getLogs`
     pub async fn logs(&self, filter: Filter) -> Result<Vec<Log>> {
-        self.log_rpc_method("eth_getLogs");
+        if self.should_log_method_banners() {
+            node_info!("eth_getLogs");
+        }
         self.backend.logs(filter).await
     }
 
@@ -1621,7 +1723,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getWork`
     pub fn work(&self) -> Result<Work> {
-        self.log_rpc_method("eth_getWork");
+        if self.should_log_method_banners() {
+            node_info!("eth_getWork");
+        }
         Err(BlockchainError::RpcUnimplemented)
     }
 
@@ -1629,7 +1733,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_syncing`
     pub fn syncing(&self) -> Result<bool> {
-        self.log_rpc_method("eth_syncing");
+        if self.should_log_method_banners() {
+            node_info!("eth_syncing");
+        }
         Ok(false)
     }
 
@@ -1644,7 +1750,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_config`
     pub fn config(&self) -> Result<EthConfig> {
-        self.log_rpc_method("eth_config");
+        if self.should_log_method_banners() {
+            node_info!("eth_config");
+        }
         Ok(EthConfig {
             current: EthForkConfig {
                 activation_time: 0,
@@ -1663,7 +1771,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_submitWork`
     pub fn submit_work(&self, _: B64, _: B256, _: B256) -> Result<bool> {
-        self.log_rpc_method("eth_submitWork");
+        if self.should_log_method_banners() {
+            node_info!("eth_submitWork");
+        }
         Err(BlockchainError::RpcUnimplemented)
     }
 
@@ -1671,7 +1781,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_submitHashrate`
     pub fn submit_hashrate(&self, _: U256, _: B256) -> Result<bool> {
-        self.log_rpc_method("eth_submitHashrate");
+        if self.should_log_method_banners() {
+            node_info!("eth_submitHashrate");
+        }
         Err(BlockchainError::RpcUnimplemented)
     }
 
@@ -1684,7 +1796,9 @@ impl EthApi {
         newest_block: BlockNumber,
         reward_percentiles: Vec<f64>,
     ) -> Result<FeeHistory> {
-        self.log_rpc_method("eth_feeHistory");
+        if self.should_log_method_banners() {
+            node_info!("eth_feeHistory");
+        }
         // max number of blocks in the requested range
 
         let current = self.backend.best_number();
@@ -1783,7 +1897,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_maxPriorityFeePerGas`
     pub fn max_priority_fee_per_gas(&self) -> Result<U256> {
-        self.log_rpc_method("eth_maxPriorityFeePerGas");
+        if self.should_log_method_banners() {
+            node_info!("eth_maxPriorityFeePerGas");
+        }
         Ok(U256::from(self.lowest_suggestion_tip()))
     }
 
@@ -1806,7 +1922,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_newFilter`
     pub async fn new_filter(&self, filter: Filter) -> Result<String> {
-        self.log_rpc_method("eth_newFilter");
+        if self.should_log_method_banners() {
+            node_info!("eth_newFilter");
+        }
         // all logs that are already available that match the filter if the filter's block range is
         // in the past
         let historic = if filter.block_option.get_from_block().is_some() {
@@ -1827,7 +1945,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_newBlockFilter`
     pub async fn new_block_filter(&self) -> Result<String> {
-        self.log_rpc_method("eth_newBlockFilter");
+        if self.should_log_method_banners() {
+            node_info!("eth_newBlockFilter");
+        }
         let filter = EthFilter::Blocks(self.new_block_notifications());
         Ok(self.filters.add_filter(filter).await)
     }
@@ -1836,7 +1956,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_newPendingTransactionFilter`
     pub async fn new_pending_transaction_filter(&self) -> Result<String> {
-        self.log_rpc_method("eth_newPendingTransactionFilter");
+        if self.should_log_method_banners() {
+            node_info!("eth_newPendingTransactionFilter");
+        }
         let filter = EthFilter::PendingTransactions(self.new_ready_transactions());
         Ok(self.filters.add_filter(filter).await)
     }
@@ -1845,7 +1967,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getFilterChanges`
     pub async fn get_filter_changes(&self, id: &str) -> ResponseResult {
-        self.log_rpc_method("eth_getFilterChanges");
+        if self.should_log_method_banners() {
+            node_info!("eth_getFilterChanges");
+        }
         self.filters.get_filter_changes(id).await
     }
 
@@ -1853,7 +1977,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `eth_getFilterLogs`
     pub async fn get_filter_logs(&self, id: &str) -> Result<Vec<Log>> {
-        self.log_rpc_method("eth_getFilterLogs");
+        if self.should_log_method_banners() {
+            node_info!("eth_getFilterLogs");
+        }
         if let Some(filter) = self.filters.get_log_filter(id).await {
             self.backend.logs(filter).await
         } else {
@@ -1863,7 +1989,9 @@ impl EthApi {
 
     /// Handler for ETH RPC call: `eth_uninstallFilter`
     pub async fn uninstall_filter(&self, id: &str) -> Result<bool> {
-        self.log_rpc_method("eth_uninstallFilter");
+        if self.should_log_method_banners() {
+            node_info!("eth_uninstallFilter");
+        }
         Ok(self.filters.uninstall_filter(id).await.is_some())
     }
 
@@ -1871,7 +1999,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `debug_getRawTransaction`
     pub async fn raw_transaction(&self, hash: B256) -> Result<Option<Bytes>> {
-        self.log_rpc_method("debug_getRawTransaction");
+        if self.should_log_method_banners() {
+            node_info!("debug_getRawTransaction");
+        }
         self.inner_raw_transaction(hash).await
     }
 
@@ -1883,7 +2013,9 @@ impl EthApi {
         block_hash: B256,
         index: Index,
     ) -> Result<Option<Bytes>> {
-        self.log_rpc_method("eth_getRawTransactionByBlockHashAndIndex");
+        if self.should_log_method_banners() {
+            node_info!("eth_getRawTransactionByBlockHashAndIndex");
+        }
         match self.backend.transaction_by_block_hash_and_index(block_hash, index).await? {
             Some(tx) => self.inner_raw_transaction(tx.tx_hash()).await,
             None => Ok(None),
@@ -1898,7 +2030,9 @@ impl EthApi {
         block_number: BlockNumber,
         index: Index,
     ) -> Result<Option<Bytes>> {
-        self.log_rpc_method("eth_getRawTransactionByBlockNumberAndIndex");
+        if self.should_log_method_banners() {
+            node_info!("eth_getRawTransactionByBlockNumberAndIndex");
+        }
         match self.backend.transaction_by_block_number_and_index(block_number, index).await? {
             Some(tx) => self.inner_raw_transaction(tx.tx_hash()).await,
             None => Ok(None),
@@ -1913,7 +2047,9 @@ impl EthApi {
         tx_hash: B256,
         opts: GethDebugTracingOptions,
     ) -> Result<GethTrace> {
-        self.log_rpc_method("debug_traceTransaction");
+        if self.should_log_method_banners() {
+            node_info!("debug_traceTransaction");
+        }
         self.backend.debug_trace_transaction(tx_hash, opts).await
     }
 
@@ -1926,7 +2062,9 @@ impl EthApi {
         block_number: Option<BlockId>,
         opts: GethDebugTracingCallOptions,
     ) -> Result<GethTrace> {
-        self.log_rpc_method("debug_traceCall");
+        if self.should_log_method_banners() {
+            node_info!("debug_traceCall");
+        }
         let block_request = self.block_request(block_number).await?;
         let fees = FeeDetails::new(
             request.gas_price,
@@ -1949,7 +2087,9 @@ impl EthApi {
         hash: B256,
         block_id: Option<BlockId>,
     ) -> Result<Option<Bytes>> {
-        self.log_rpc_method("debug_codeByHash");
+        if self.should_log_method_banners() {
+            node_info!("debug_codeByHash");
+        }
         self.backend.debug_code_by_hash(hash, block_id).await
     }
 
@@ -1957,7 +2097,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `trace_transaction`
     pub async fn trace_transaction(&self, tx_hash: B256) -> Result<Vec<LocalizedTransactionTrace>> {
-        self.log_rpc_method("trace_transaction");
+        if self.should_log_method_banners() {
+            node_info!("trace_transaction");
+        }
         self.backend.trace_transaction(tx_hash).await
     }
 
@@ -1965,7 +2107,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `trace_block`
     pub async fn trace_block(&self, block: BlockNumber) -> Result<Vec<LocalizedTransactionTrace>> {
-        self.log_rpc_method("trace_block");
+        if self.should_log_method_banners() {
+            node_info!("trace_block");
+        }
         self.backend.trace_block(block).await
     }
 
@@ -1976,7 +2120,9 @@ impl EthApi {
         &self,
         filter: TraceFilter,
     ) -> Result<Vec<LocalizedTransactionTrace>> {
-        self.log_rpc_method("trace_filter");
+        if self.should_log_method_banners() {
+            node_info!("trace_filter");
+        }
         self.backend.trace_filter(filter).await
     }
 }
@@ -1988,7 +2134,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_impersonateAccount`
     pub async fn anvil_impersonate_account(&self, address: Address) -> Result<()> {
-        self.log_rpc_method("anvil_impersonateAccount");
+        if self.should_log_method_banners() {
+            node_info!("anvil_impersonateAccount");
+        }
         self.backend.impersonate(address);
         Ok(())
     }
@@ -1997,7 +2145,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_stopImpersonatingAccount`
     pub async fn anvil_stop_impersonating_account(&self, address: Address) -> Result<()> {
-        self.log_rpc_method("anvil_stopImpersonatingAccount");
+        if self.should_log_method_banners() {
+            node_info!("anvil_stopImpersonatingAccount");
+        }
         self.backend.stop_impersonating(address);
         Ok(())
     }
@@ -2006,7 +2156,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_autoImpersonateAccount`
     pub async fn anvil_auto_impersonate_account(&self, enabled: bool) -> Result<()> {
-        self.log_rpc_method("anvil_autoImpersonateAccount");
+        if self.should_log_method_banners() {
+            node_info!("anvil_autoImpersonateAccount");
+        }
         self.backend.auto_impersonate_account(enabled);
         Ok(())
     }
@@ -2017,7 +2169,9 @@ impl EthApi {
         signature: Bytes,
         address: Address,
     ) -> Result<()> {
-        self.log_rpc_method("anvil_impersonateSignature");
+        if self.should_log_method_banners() {
+            node_info!("anvil_impersonateSignature");
+        }
         self.backend.impersonate_signature(signature, address).await
     }
 
@@ -2025,7 +2179,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_getAutomine`
     pub fn anvil_get_auto_mine(&self) -> Result<bool> {
-        self.log_rpc_method("anvil_getAutomine");
+        if self.should_log_method_banners() {
+            node_info!("anvil_getAutomine");
+        }
         Ok(self.miner.is_auto_mine())
     }
 
@@ -2033,7 +2189,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_getIntervalMining`.
     pub fn anvil_get_interval_mining(&self) -> Result<Option<u64>> {
-        self.log_rpc_method("anvil_getIntervalMining");
+        if self.should_log_method_banners() {
+            node_info!("anvil_getIntervalMining");
+        }
         Ok(self.miner.get_interval())
     }
 
@@ -2042,7 +2200,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `evm_setAutomine`
     pub async fn anvil_set_auto_mine(&self, enable_automine: bool) -> Result<()> {
-        self.log_rpc_method("evm_setAutomine");
+        if self.should_log_method_banners() {
+            node_info!("evm_setAutomine");
+        }
         if self.miner.is_auto_mine() {
             if enable_automine {
                 return Ok(());
@@ -2060,7 +2220,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_mine`
     pub async fn anvil_mine(&self, num_blocks: Option<U256>, interval: Option<U256>) -> Result<()> {
-        self.log_rpc_method("anvil_mine");
+        if self.should_log_method_banners() {
+            node_info!("anvil_mine");
+        }
         let interval = interval.map(|i| i.to::<u64>());
         let blocks = num_blocks.unwrap_or(U256::from(1));
         if blocks.is_zero() {
@@ -2087,7 +2249,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `evm_setIntervalMining`
     pub fn anvil_set_interval_mining(&self, secs: u64) -> Result<()> {
-        self.log_rpc_method("evm_setIntervalMining");
+        if self.should_log_method_banners() {
+            node_info!("evm_setIntervalMining");
+        }
         let mining_mode = if secs == 0 {
             MiningMode::None
         } else {
@@ -2106,7 +2270,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_dropTransaction`
     pub async fn anvil_drop_transaction(&self, tx_hash: B256) -> Result<Option<B256>> {
-        self.log_rpc_method("anvil_dropTransaction");
+        if self.should_log_method_banners() {
+            node_info!("anvil_dropTransaction");
+        }
         Ok(self.pool.drop_transaction(tx_hash).map(|tx| tx.hash()))
     }
 
@@ -2114,7 +2280,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_dropAllTransactions`
     pub async fn anvil_drop_all_transactions(&self) -> Result<()> {
-        self.log_rpc_method("anvil_dropAllTransactions");
+        if self.should_log_method_banners() {
+            node_info!("anvil_dropAllTransactions");
+        }
         self.pool.clear();
         Ok(())
     }
@@ -2126,7 +2294,9 @@ impl EthApi {
     /// Handler for RPC call: `anvil_reset`
     pub async fn anvil_reset(&self, forking: Option<Forking>) -> Result<()> {
         self.reset_instance_id();
-        self.log_rpc_method("anvil_reset");
+        if self.should_log_method_banners() {
+            node_info!("anvil_reset");
+        }
         if let Some(forking) = forking {
             // if we're resetting the fork we need to reset the instance id
             self.backend.reset_fork(forking).await
@@ -2138,7 +2308,9 @@ impl EthApi {
     }
 
     pub async fn anvil_set_chain_id(&self, chain_id: u64) -> Result<()> {
-        self.log_rpc_method("anvil_setChainId");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setChainId");
+        }
         self.backend.set_chain_id(chain_id);
         Ok(())
     }
@@ -2147,7 +2319,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setBalance`
     pub async fn anvil_set_balance(&self, address: Address, balance: U256) -> Result<()> {
-        self.log_rpc_method("anvil_setBalance");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setBalance");
+        }
         self.backend.set_balance(address, balance).await?;
         Ok(())
     }
@@ -2156,7 +2330,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_addBalance`
     pub async fn anvil_add_balance(&self, address: Address, balance: U256) -> Result<()> {
-        self.log_rpc_method("anvil_addBalance");
+        if self.should_log_method_banners() {
+            node_info!("anvil_addBalance");
+        }
         let current_balance = self.backend.get_balance(address, None).await?;
         self.backend.set_balance(address, current_balance + balance).await?;
         Ok(())
@@ -2238,7 +2414,9 @@ impl EthApi {
         token_address: Address,
         balance: U256,
     ) -> Result<()> {
-        self.log_rpc_method("anvil_dealERC20");
+        if self.should_log_method_banners() {
+            node_info!("anvil_dealERC20");
+        }
 
         sol! {
             #[sol(rpc)]
@@ -2276,7 +2454,9 @@ impl EthApi {
         token_address: Address,
         amount: U256,
     ) -> Result<()> {
-        self.log_rpc_method("anvil_setERC20Allowance");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setERC20Allowance");
+        }
 
         sol! {
             #[sol(rpc)]
@@ -2308,7 +2488,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setCode`
     pub async fn anvil_set_code(&self, address: Address, code: Bytes) -> Result<()> {
-        self.log_rpc_method("anvil_setCode");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setCode");
+        }
         self.backend.set_code(address, code).await?;
         Ok(())
     }
@@ -2317,7 +2499,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setNonce`
     pub async fn anvil_set_nonce(&self, address: Address, nonce: U256) -> Result<()> {
-        self.log_rpc_method("anvil_setNonce");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setNonce");
+        }
         self.backend.set_nonce(address, nonce).await?;
         Ok(())
     }
@@ -2331,7 +2515,9 @@ impl EthApi {
         slot: U256,
         val: B256,
     ) -> Result<bool> {
-        self.log_rpc_method("anvil_setStorageAt");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setStorageAt");
+        }
         self.backend.set_storage_at(address, slot, val).await?;
         Ok(true)
     }
@@ -2340,7 +2526,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setLoggingEnabled`
     pub async fn anvil_set_logging(&self, enable: bool) -> Result<()> {
-        self.log_rpc_method("anvil_setLoggingEnabled");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setLoggingEnabled");
+        }
         self.rpc_payload_logging.store(enable, Ordering::Relaxed);
         self.logger.set_enabled(enable);
         Ok(())
@@ -2350,7 +2538,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setMinGasPrice`
     pub async fn anvil_set_min_gas_price(&self, gas: U256) -> Result<()> {
-        self.log_rpc_method("anvil_setMinGasPrice");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setMinGasPrice");
+        }
         if self.backend.is_eip1559() {
             return Err(RpcError::invalid_params(
                 "anvil_setMinGasPrice is not supported when EIP-1559 is active",
@@ -2365,7 +2555,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setNextBlockBaseFeePerGas`
     pub async fn anvil_set_next_block_base_fee_per_gas(&self, basefee: U256) -> Result<()> {
-        self.log_rpc_method("anvil_setNextBlockBaseFeePerGas");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setNextBlockBaseFeePerGas");
+        }
         if !self.backend.is_eip1559() {
             return Err(RpcError::invalid_params(
                 "anvil_setNextBlockBaseFeePerGas is only supported when EIP-1559 is active",
@@ -2380,7 +2572,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setCoinbase`
     pub async fn anvil_set_coinbase(&self, address: Address) -> Result<()> {
-        self.log_rpc_method("anvil_setCoinbase");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setCoinbase");
+        }
         self.backend.set_coinbase(address);
         Ok(())
     }
@@ -2393,7 +2587,9 @@ impl EthApi {
         &self,
         preserve_historical_states: Option<bool>,
     ) -> Result<Bytes> {
-        self.log_rpc_method("anvil_dumpState");
+        if self.should_log_method_banners() {
+            node_info!("anvil_dumpState");
+        }
         self.backend.dump_state(preserve_historical_states.unwrap_or(false)).await
     }
 
@@ -2410,7 +2606,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_loadState`
     pub async fn anvil_load_state(&self, buf: Bytes) -> Result<bool> {
-        self.log_rpc_method("anvil_loadState");
+        if self.should_log_method_banners() {
+            node_info!("anvil_loadState");
+        }
         self.backend.load_state_bytes(buf).await
     }
 
@@ -2418,7 +2616,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_nodeInfo`
     pub async fn anvil_node_info(&self) -> Result<NodeInfo> {
-        self.log_rpc_method("anvil_nodeInfo");
+        if self.should_log_method_banners() {
+            node_info!("anvil_nodeInfo");
+        }
 
         let env = self.backend.env().read();
         let fork_config = self.backend.get_fork();
@@ -2458,7 +2658,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_metadata`
     pub async fn anvil_metadata(&self) -> Result<Metadata> {
-        self.log_rpc_method("anvil_metadata");
+        if self.should_log_method_banners() {
+            node_info!("anvil_metadata");
+        }
         let fork_config = self.backend.get_fork();
 
         Ok(Metadata {
@@ -2477,7 +2679,9 @@ impl EthApi {
     }
 
     pub async fn anvil_remove_pool_transactions(&self, address: Address) -> Result<()> {
-        self.log_rpc_method("anvil_removePoolTransactions");
+        if self.should_log_method_banners() {
+            node_info!("anvil_removePoolTransactions");
+        }
         self.pool.remove_transactions_by_address(address);
         Ok(())
     }
@@ -2496,7 +2700,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_reorg`
     pub async fn anvil_reorg(&self, options: ReorgOptions) -> Result<()> {
-        self.log_rpc_method("anvil_reorg");
+        if self.should_log_method_banners() {
+            node_info!("anvil_reorg");
+        }
         let depth = options.depth;
         let tx_block_pairs = options.tx_block_pairs;
 
@@ -2616,7 +2822,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_rollback`
     pub async fn anvil_rollback(&self, depth: Option<u64>) -> Result<()> {
-        self.log_rpc_method("anvil_rollback");
+        if self.should_log_method_banners() {
+            node_info!("anvil_rollback");
+        }
         let depth = depth.unwrap_or(1);
 
         // Check reorg depth doesn't exceed current chain height
@@ -2639,7 +2847,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `evm_snapshot`
     pub async fn evm_snapshot(&self) -> Result<U256> {
-        self.log_rpc_method("evm_snapshot");
+        if self.should_log_method_banners() {
+            node_info!("evm_snapshot");
+        }
         Ok(self.backend.create_state_snapshot().await)
     }
 
@@ -2648,7 +2858,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `evm_revert`
     pub async fn evm_revert(&self, id: U256) -> Result<bool> {
-        self.log_rpc_method("evm_revert");
+        if self.should_log_method_banners() {
+            node_info!("evm_revert");
+        }
         self.backend.revert_state_snapshot(id).await
     }
 
@@ -2656,7 +2868,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `evm_increaseTime`
     pub async fn evm_increase_time(&self, seconds: U256) -> Result<i64> {
-        self.log_rpc_method("evm_increaseTime");
+        if self.should_log_method_banners() {
+            node_info!("evm_increaseTime");
+        }
         Ok(self.backend.time().increase_time(seconds.try_into().unwrap_or(u64::MAX)) as i64)
     }
 
@@ -2664,7 +2878,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `evm_setNextBlockTimestamp`
     pub fn evm_set_next_block_timestamp(&self, seconds: u64) -> Result<()> {
-        self.log_rpc_method("evm_setNextBlockTimestamp");
+        if self.should_log_method_banners() {
+            node_info!("evm_setNextBlockTimestamp");
+        }
         self.backend.time().set_next_block_timestamp(seconds)
     }
 
@@ -2673,7 +2889,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `evm_setTime`
     pub fn evm_set_time(&self, timestamp: u64) -> Result<u64> {
-        self.log_rpc_method("evm_setTime");
+        if self.should_log_method_banners() {
+            node_info!("evm_setTime");
+        }
         let now = self.backend.time().current_call_timestamp();
         self.backend.time().reset(timestamp);
 
@@ -2686,7 +2904,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `evm_setBlockGasLimit`
     pub fn evm_set_block_gas_limit(&self, gas_limit: U256) -> Result<bool> {
-        self.log_rpc_method("evm_setBlockGasLimit");
+        if self.should_log_method_banners() {
+            node_info!("evm_setBlockGasLimit");
+        }
         self.backend.set_gas_limit(gas_limit.to());
         Ok(true)
     }
@@ -2695,7 +2915,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_setBlockTimestampInterval`
     pub fn evm_set_block_timestamp_interval(&self, seconds: u64) -> Result<()> {
-        self.log_rpc_method("anvil_setBlockTimestampInterval");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setBlockTimestampInterval");
+        }
         self.backend.time().set_block_timestamp_interval(seconds);
         Ok(())
     }
@@ -2704,7 +2926,9 @@ impl EthApi {
     ///
     /// Handler for RPC call: `anvil_removeBlockTimestampInterval`
     pub fn evm_remove_block_timestamp_interval(&self) -> Result<bool> {
-        self.log_rpc_method("anvil_removeBlockTimestampInterval");
+        if self.should_log_method_banners() {
+            node_info!("anvil_removeBlockTimestampInterval");
+        }
         Ok(self.backend.time().remove_block_timestamp_interval())
     }
 
@@ -2715,7 +2939,9 @@ impl EthApi {
     /// This will mine the blocks regardless of the configured mining mode.
     /// **Note**: ganache returns `0x0` here as placeholder for additional meta-data in the future.
     pub async fn evm_mine(&self, opts: Option<MineOptions>) -> Result<String> {
-        self.log_rpc_method("evm_mine");
+        if self.should_log_method_banners() {
+            node_info!("evm_mine");
+        }
 
         self.do_evm_mine(opts).await?;
 
@@ -2732,7 +2958,9 @@ impl EthApi {
     /// compatibility reasons, this is a separate call since `evm_mine` is not an anvil original.
     /// and `ganache` may change the `0x0` placeholder.
     pub async fn evm_mine_detailed(&self, opts: Option<MineOptions>) -> Result<Vec<AnyRpcBlock>> {
-        self.log_rpc_method("evm_mine_detailed");
+        if self.should_log_method_banners() {
+            node_info!("evm_mine_detailed");
+        }
 
         let mined_blocks = self.do_evm_mine(opts).await?;
 
@@ -2785,7 +3013,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_setBlock`
     pub fn anvil_set_block(&self, block_number: u64) -> Result<()> {
-        self.log_rpc_method("anvil_setBlock");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setBlock");
+        }
         self.backend.set_block_number(block_number);
         Ok(())
     }
@@ -2794,7 +3024,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_setRpcUrl`
     pub fn anvil_set_rpc_url(&self, url: String) -> Result<()> {
-        self.log_rpc_method("anvil_setRpcUrl");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setRpcUrl");
+        }
         if let Some(fork) = self.backend.get_fork() {
             let mut config = fork.config.write();
             // let interval = config.provider.get_interval();
@@ -2820,7 +3052,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `anvil_enableTraces`
     pub async fn anvil_enable_traces(&self) -> Result<()> {
-        self.log_rpc_method("anvil_enableTraces");
+        if self.should_log_method_banners() {
+            node_info!("anvil_enableTraces");
+        }
         Err(BlockchainError::RpcUnimplemented)
     }
 
@@ -2831,7 +3065,9 @@ impl EthApi {
         &self,
         request: WithOtherFields<TransactionRequest>,
     ) -> Result<TxHash> {
-        self.log_rpc_method("eth_sendUnsignedTransaction");
+        if self.should_log_method_banners() {
+            node_info!("eth_sendUnsignedTransaction");
+        }
         // either use the impersonated account of the request's `from` field
         let from = request.from.ok_or(BlockchainError::NoSignerAvailable)?;
 
@@ -2861,7 +3097,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `txpool_status`
     pub async fn txpool_status(&self) -> Result<TxpoolStatus> {
-        self.log_rpc_method("txpool_status");
+        if self.should_log_method_banners() {
+            node_info!("txpool_status");
+        }
         Ok(self.pool.txpool_status())
     }
 
@@ -2872,7 +3110,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `txpool_inspect`
     pub async fn txpool_inspect(&self) -> Result<TxpoolInspect> {
-        self.log_rpc_method("txpool_inspect");
+        if self.should_log_method_banners() {
+            node_info!("txpool_inspect");
+        }
         let mut inspect = TxpoolInspect::default();
 
         fn convert(tx: Arc<PoolTransaction>) -> TxpoolInspectSummary {
@@ -2910,7 +3150,9 @@ impl EthApi {
     ///
     /// Handler for ETH RPC call: `txpool_inspect`
     pub async fn txpool_content(&self) -> Result<TxpoolContent<AnyRpcTransaction>> {
-        self.log_rpc_method("txpool_content");
+        if self.should_log_method_banners() {
+            node_info!("txpool_content");
+        }
         let mut content = TxpoolContent::<AnyRpcTransaction>::default();
         fn convert(tx: Arc<PoolTransaction>) -> Result<AnyRpcTransaction> {
             let from = *tx.pending_transaction.sender();
@@ -2956,7 +3198,9 @@ impl EthApi {
     ///
     /// [eip-5792]: https://eips.ethereum.org/EIPS/eip-5792
     pub fn get_capabilities(&self) -> Result<WalletCapabilities> {
-        self.log_rpc_method("wallet_getCapabilities");
+        if self.should_log_method_banners() {
+            node_info!("wallet_getCapabilities");
+        }
         Ok(self.backend.get_capabilities())
     }
 
@@ -2964,13 +3208,17 @@ impl EthApi {
     ///
     /// This entails that the executor will now be able to sponsor transactions to this address.
     pub fn anvil_add_capability(&self, address: Address) -> Result<()> {
-        self.log_rpc_method("anvil_addCapability");
+        if self.should_log_method_banners() {
+            node_info!("anvil_addCapability");
+        }
         self.backend.add_capability(address);
         Ok(())
     }
 
     pub fn anvil_set_executor(&self, executor_pk: String) -> Result<Address> {
-        self.log_rpc_method("anvil_setExecutor");
+        if self.should_log_method_banners() {
+            node_info!("anvil_setExecutor");
+        }
         self.backend.set_executor(executor_pk)
     }
 }
