@@ -109,15 +109,22 @@ impl RpcHandler for HttpEthRpcHandler {
             "handling call"
         );
 
-        let RpcMethodCall { jsonrpc, method, params, id } = call;
-        let params_value: serde_json::Value = params.clone().into();
-
-        let raw = json!({
-            "jsonrpc": jsonrpc,
-            "method": method.clone(),
-            "params": params_value.clone(),
-            "id": id.clone(),
+        let id = call.id.clone();
+        let method = call.method.clone();
+        let params = call.params.clone();
+        
+        // Serialize the entire RpcMethodCall to preserve the original request format
+        let raw = serde_json::to_value(&call).unwrap_or_else(|_| {
+            // Fallback should never happen since RpcMethodCall implements Serialize
+            json!({
+                "jsonrpc": call.jsonrpc,
+                "method": &call.method,
+                "params": serde_json::Value::from(call.params),
+                "id": &call.id,
+            })
         });
+        
+        let params_value: serde_json::Value = params.into();
 
         let metadata = RpcCallLogContext {
             id: Some(id.clone()),
