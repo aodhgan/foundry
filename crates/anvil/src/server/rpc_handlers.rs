@@ -96,21 +96,18 @@ impl RpcHandler for HttpEthRpcHandler {
             "handling call"
         );
 
-        let id = call.id.clone();
-        let method = call.method.clone();
-        let params = call.params.clone();
-        
         // Serialize the entire RpcMethodCall to preserve the original request format
         let raw = serde_json::to_value(&call).unwrap_or_else(|_| {
             // Fallback should never happen since RpcMethodCall implements Serialize
             json!({
-                "jsonrpc": call.jsonrpc,
+                "jsonrpc": &call.jsonrpc,
                 "method": &call.method,
-                "params": serde_json::Value::from(call.params),
+                "params": serde_json::Value::from(&call.params),
                 "id": &call.id,
             })
         });
-        
+
+        let RpcMethodCall { method, params, id, .. } = call;
         let params_value: serde_json::Value = params.into();
 
         let metadata = RpcCallLogContext {
@@ -121,8 +118,8 @@ impl RpcHandler for HttpEthRpcHandler {
         };
 
         let call_value = json!({
-            "method": method.clone(),
-            "params": params_value,
+            "method": &method,
+            "params": &params_value,
         });
 
         match serde_json::from_value::<EthRequest>(call_value) {
