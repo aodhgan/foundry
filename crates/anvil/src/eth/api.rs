@@ -76,7 +76,7 @@ use anvil_core::{
 };
 use anvil_rpc::{
     error::RpcError,
-    request::{Id as RpcId, Version},
+    request::{Id as RpcId, RequestParams, Version},
     response::ResponseResult,
 };
 use chrono::{DateTime, Utc};
@@ -141,9 +141,9 @@ pub struct RpcCallLogContext {
     pub method: Option<String>,
     pub peer_addr: Option<SocketAddr>,
     pub timestamp: Option<DateTime<Utc>>,
-    /// The JSON-RPC version and params value, stored for lazy raw JSON construction
+    /// The JSON-RPC version and params, stored for lazy raw JSON construction
     pub jsonrpc_version: Option<Version>,
-    pub params_value: Option<serde_json::Value>,
+    pub params: Option<RequestParams>,
 }
 
 impl RpcCallLogContext {
@@ -202,7 +202,7 @@ impl RpcCallLogContext {
     /// Constructs the raw JSON-RPC request from stored context data.
     ///
     /// This method lazily builds the full JSON-RPC request payload only when needed
-    /// (e.g., for verbose logging). It requires jsonrpc_version, method, params_value, and id
+    /// (e.g., for verbose logging). It requires jsonrpc_version, method, params, and id
     /// to be present in the context.
     ///
     /// # Returns
@@ -212,8 +212,11 @@ impl RpcCallLogContext {
     pub(crate) fn to_raw_json(&self) -> Option<Value> {
         let jsonrpc = self.jsonrpc_version.as_ref()?;
         let method = self.method.as_ref()?;
-        let params_value = self.params_value.as_ref()?;
+        let params = self.params.as_ref()?;
         let id = self.id.as_ref()?;
+
+        // Convert RequestParams to Value only when actually constructing the JSON
+        let params_value: serde_json::Value = params.clone().into();
 
         Some(serde_json::json!({
             "jsonrpc": jsonrpc,
