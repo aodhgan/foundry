@@ -89,6 +89,42 @@ impl HttpEthRpcHandler {
     pub fn new(api: EthApi) -> Self {
         Self { api }
     }
+
+    /// Converts a `RpcMethodCall` into a `JsonRpcRequest<EthRequest>`.
+    ///
+    /// This helper captures the raw JSON request and creates logging metadata
+    /// (timestamp, peer address) that will be used for verbose RPC logging.
+    fn try_into_request(
+        call: &RpcMethodCall,
+        peer_addr: Option<SocketAddr>,
+    ) -> Result<JsonRpcRequest<EthRequest>, serde_json::Error> {
+        let params_value: serde_json::Value = call.params.clone().into();
+
+        // Construct the full raw JSON-RPC request for logging
+        let raw = json!({
+            "jsonrpc": &call.jsonrpc,
+            "method": &call.method,
+            "params": &params_value,
+            "id": &call.id,
+        });
+
+        // Build metadata context for logging
+        let metadata = RpcCallLogContext {
+            id: Some(call.id.clone()),
+            method: Some(call.method.clone()),
+            peer_addr,
+            timestamp: Some(Utc::now()),
+        };
+
+        // Deserialize into EthRequest
+        let call_value = json!({
+            "method": &call.method,
+            "params": params_value,
+        });
+        let parsed = serde_json::from_value::<EthRequest>(call_value)?;
+
+        Ok(JsonRpcRequest::new(parsed, raw, metadata))
+    }
 }
 
 #[async_trait::async_trait]
@@ -109,50 +145,23 @@ impl RpcHandler for HttpEthRpcHandler {
             "handling call"
         );
 
-        // Serialize the entire RpcMethodCall to preserve the original request format
-        let raw = serde_json::to_value(&call).unwrap_or_else(|_| {
-            // Fallback should never happen since RpcMethodCall implements Serialize
-            json!({
-                "jsonrpc": &call.jsonrpc,
-                "method": &call.method,
-                "params": serde_json::Value::from(&call.params),
-                "id": &call.id,
-            })
-        });
-
-        let RpcMethodCall { method, params, id, .. } = call;
-        let params_value: serde_json::Value = params.into();
-
-        let metadata = RpcCallLogContext {
-            id: Some(id.clone()),
-            method: Some(method.clone()),
-            peer_addr,
-            timestamp: Some(Utc::now()),
-        };
-
-        let call_value = json!({
-            "method": &method,
-            "params": &params_value,
-        });
-
-        match serde_json::from_value::<EthRequest>(call_value) {
-            Ok(parsed) => {
-                let request = JsonRpcRequest::new(parsed, raw, metadata);
+        match Self::try_into_request(&call, peer_addr) {
+            Ok(request) => {
                 let result = self.on_request(request).await;
-                RpcResponse::new(id, result)
+                RpcResponse::new(call.id, result)
             }
             Err(err) => {
                 let err = err.to_string();
                 if err.contains("unknown variant") {
                     error!(
                         target: "rpc",
-                        method = ?method,
+                        method = ?call.method,
                         "failed to deserialize method due to unknown variant"
                     );
-                    RpcResponse::new(id, RpcError::method_not_found())
+                    RpcResponse::new(call.id, RpcError::method_not_found())
                 } else {
-                    error!(target: "rpc", method = ?method, ?err, "failed to deserialize method");
-                    RpcResponse::new(id, RpcError::invalid_params(err))
+                    error!(target: "rpc", method = ?call.method, ?err, "failed to deserialize method");
+                    RpcResponse::new(call.id, RpcError::invalid_params(err))
                 }
             }
         }
