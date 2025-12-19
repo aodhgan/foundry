@@ -31,6 +31,20 @@ use tracing::{error, trace};
 /// Keeping both the parsed and raw forms allows handlers and logging code to
 /// inspect or record the exact request payload while still working with a
 /// typed representation.
+///
+/// ## Note on `Deserialize`
+///
+/// This type does NOT implement `serde::Deserialize` even though
+/// `RpcHandler::Request` requires `DeserializeOwned`. This is intentional because:
+///
+/// 1. The metadata fields (peer address, timestamp) must be populated at runtime
+///    and cannot be deserialized from the JSON-RPC payload.
+/// 2. We need to preserve the raw JSON payload alongside the parsed request.
+/// 3. `HttpEthRpcHandler` overrides `RpcHandler::on_call` and constructs instances
+///    manually via `try_into_request`, bypassing the default deserialization path.
+///
+/// The `DeserializeOwned` bound exists only for handlers that use the default
+/// `on_call` implementation, which this handler does not.
 pub struct JsonRpcRequest<T> {
     /// The strongly-typed, already-deserialized representation of the request.
     parsed: T,
@@ -63,19 +77,7 @@ where
     }
 }
 
-impl<'de, T> serde::Deserialize<'de> for JsonRpcRequest<T>
-where
-    T: serde::de::DeserializeOwned,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let raw = serde_json::Value::deserialize(deserializer)?;
-        let parsed = T::deserialize(&raw).map_err(serde::de::Error::custom)?;
-        Ok(Self { parsed, raw, metadata: RpcCallLogContext::default() })
-    }
-}
+
 
 /// A `RpcHandler` that expects `EthRequest` rpc calls via http
 #[derive(Clone)]
