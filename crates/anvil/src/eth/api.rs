@@ -215,7 +215,9 @@ impl RpcCallLogContext {
         let params = self.params.as_ref()?;
         let id = self.id.as_ref()?;
 
-        // Convert RequestParams to Value only when actually constructing the JSON
+        // Convert RequestParams to Value only when actually constructing the JSON.
+        // Note: This clone is necessary because RequestParams::into() consumes self.
+        // A potential future optimization would be to implement From<&RequestParams> for Value.
         let params_value: serde_json::Value = params.clone().into();
 
         Some(serde_json::json!({
