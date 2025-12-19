@@ -44,7 +44,8 @@ use tracing::{error, trace};
 ///    manually via `try_into_request`, bypassing the default deserialization path.
 ///
 /// The `DeserializeOwned` bound exists only for handlers that use the default
-/// `on_call` implementation, which this handler does not.
+/// `on_call` implementation, which this handler does not. Note that the inner `T` type
+/// (e.g., `EthRequest`) is still deserialized normally within `try_into_request`.
 pub struct JsonRpcRequest<T> {
     /// The strongly-typed, already-deserialized representation of the request.
     parsed: T,
